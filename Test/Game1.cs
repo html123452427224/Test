@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using System;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 
@@ -12,7 +13,9 @@ public class Game1 : Game
     
     private Vector2 playerPosition;
     private Vector2 playerVelocity;
-    private float gravity = 0.5f;  // Gravity acceleration per frame
+    private float gravity = 0.1f;        // Starting gravity
+    private float gravityScale = 1.01f;  // Gravity multiplier per frame
+
 
     public Game1()
     {
@@ -25,8 +28,8 @@ public class Game1 : Game
     {
         // TODO: Add your initialization logic here
         spriteBatch = new SpriteBatch(GraphicsDevice);
-        playerPosition = new Vector2(100, 100);
-        playerVelocity = Vector2.Zero;
+        playerPosition = new Vector2(100,0);
+        playerVelocity = new Vector2(0, 0);
         base.Initialize();
     }
     Texture2D myTexture;
@@ -44,18 +47,32 @@ public class Game1 : Game
         if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
             Exit();
         
+        if (playerVelocity.Y > 0)
+        {
+            gravity *= gravityScale;
+        }
+        
+        // Apply current gravity value
         playerVelocity.Y += gravity;
         
-        // Apply velocity to position
+        // Optionally cap maximum gravity to prevent extreme values
+        float maxGravity = 3.0f;
+        if (gravity > maxGravity) gravity = maxGravity;
+        
+        // Update position based on velocity
         playerPosition += playerVelocity;
-       
-
-        // TODO: Add your update logic here
+        
+        // Debug output to see gravity scaling
+        System.Diagnostics.Debug.WriteLine($"Gravity: {gravity}, Velocity: {playerVelocity.Y}");
+        
+        // Add floor collision
         if (playerPosition.Y > GraphicsDevice.Viewport.Height - 8)
         {
             playerPosition.Y = GraphicsDevice.Viewport.Height - 8;
             playerVelocity.Y = 0;
+            gravity = 0.1f; // Reset gravity when landing
         }
+        Console.WriteLine($"Position: {playerPosition}, Velocity: {playerVelocity}, Gravity: {gravity}");
 
         base.Update(gameTime);
     }
