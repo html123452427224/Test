@@ -9,17 +9,26 @@ public class Game1 : Game
 {
     private GraphicsDeviceManager _graphics;
     private SpriteBatch _spriteBatch;
-    
-    
+
     private Vector2 playerPosition;
     private Vector2 playerVelocity;
-    private float gravity = 0.1f;        // Starting gravity
-    private float gravityScale = 1.01f;  // Gravity multiplier per frame
+    private float gravity = 0.1f; // Starting gravity
+    private float gravityScale = 1.01f; // Gravity multiplier per frame
     private float moveSpeed = 3f;
-    private bool isJumping = false;  // To track if player is currently in the air
-    private float jumpForce = -5f;   // Force applied when player jumps
 
+    private bool isJumping = false; // To track if player is currently in the air
+    private float jumpForce = -5f; // Force applied when player jumps
 
+    // Tile parameters
+    private Texture2D tileSheet; // The full texture of the sprite sheet
+    private int tileSize = 8; // Assuming each tile is 8x8
+    private Rectangle grassTileSource; // The portion of the sprite sheet for the grass tile
+    private Rectangle dirtTileSource; // The portion of the sprite sheet for the dirt tile
+    private Rectangle playerTileSource; // The portion of the sprite sheet for the player sprite
+
+    // Platform positions (start and end x, y for each platform)
+    private Rectangle platform1; // Platform 1
+    private Rectangle platform2; // Platform 2
 
     public Game1()
     {
@@ -27,28 +36,38 @@ public class Game1 : Game
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
     }
+
     SpriteBatch spriteBatch;
+
     protected override void Initialize()
     {
-        // TODO: Add your initialization logic here
         spriteBatch = new SpriteBatch(GraphicsDevice);
-        playerPosition = new Vector2(100,0);
+        playerPosition = new Vector2(100, 0);
         playerVelocity = new Vector2(0, 0);
+
+        // Platform positions
+        platform1 = new Rectangle(50, 100, 80, 8); // Platform 1 at (50, 100) with width of 80 tiles
+        platform2 = new Rectangle(200, 150, 80, 8); // Platform 2 at (200, 150) with width of 80 tiles
+
         base.Initialize();
     }
-    Texture2D myTexture;
 
     protected override void LoadContent()
     {
         _spriteBatch = new SpriteBatch(GraphicsDevice);
 
-        // TODO: use this.Content to load your game content here
-        myTexture = Content.Load<Texture2D>("spritesheet");
+        // Load the full sprite sheet (all tiles)
+        tileSheet = Content.Load<Texture2D>("spritesheet");
+
+        // Assuming grass is at position (0, 8) and dirt is at position (8, 8) on your sprite sheet
+        grassTileSource = new Rectangle(0, 8, tileSize, tileSize); // The grass tile (8x8)
+        dirtTileSource = new Rectangle(8, 8, tileSize, tileSize); // The dirt tile (8x8)
+        playerTileSource = new Rectangle(0, 0, tileSize, tileSize); // The player sprite (8x8)
     }
 
     protected override void Update(GameTime gameTime)
     {
-        if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || 
+        if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed ||
             Keyboard.GetState().IsKeyDown(Keys.Escape))
             Exit();
 
@@ -59,46 +78,62 @@ public class Game1 : Game
         {
             playerPosition.X -= moveSpeed;
         }
+
         if (keyboard.IsKeyDown(Keys.D))
         {
             playerPosition.X += moveSpeed;
         }
-        if (playerVelocity.Y > 0)
-        {
-            gravity *= gravityScale;
-        }
-        
+
+        // Jumping mechanic
         if ((keyboard.IsKeyDown(Keys.W) || keyboard.IsKeyDown(Keys.Space)) && !isJumping)
         {
-            playerVelocity.Y = jumpForce;  // Apply upward force
-            isJumping = true;              // Player is now jumping
+            playerVelocity.Y = jumpForce; // Apply upward force
+            isJumping = true; // Player is now jumping
         }
 
-        // Gravity
+        // Gravity (accelerates downward)
         playerVelocity.Y += gravity;
         float maxGravity = 3.0f;
         if (gravity > maxGravity) gravity = maxGravity;
-        
+
         // Update position based on velocity
         playerPosition += playerVelocity;
-        
-        // Debug output to see gravity scaling
-        System.Diagnostics.Debug.WriteLine($"Gravity: {gravity}, Velocity: {playerVelocity.Y}");
-        
-        // Add floor collision
-        if (playerPosition.Y > GraphicsDevice.Viewport.Height - 8)
+
+        // Platform collision (check if player is above and lands on a platform)
+        if (playerVelocity.Y > 0) // If falling down
         {
-            playerPosition.Y = GraphicsDevice.Viewport.Height - 8;
+            if (playerPosition.Y + tileSize <= platform1.Y + tileSize &&
+                playerPosition.Y + tileSize + playerVelocity.Y >= platform1.Y &&
+                playerPosition.X + tileSize > platform1.X && playerPosition.X < platform1.X + platform1.Width)
+            {
+                // Player lands on platform1
+                playerPosition.Y = platform1.Y - tileSize; // Set player on top of the platform
+                playerVelocity.Y = 0; // Stop falling
+                isJumping = false; // Allow jumping again after landing
+            }
+
+            if (playerPosition.Y + tileSize <= platform2.Y + tileSize &&
+                playerPosition.Y + tileSize + playerVelocity.Y >= platform2.Y &&
+                playerPosition.X + tileSize > platform2.X && playerPosition.X < platform2.X + platform2.Width)
+            {
+                // Player lands on platform2
+                playerPosition.Y = platform2.Y - tileSize; // Set player on top of the platform
+                playerVelocity.Y = 0; // Stop falling
+                isJumping = false; // Allow jumping again after landing
+            }
+        }
+
+        // Add floor collision (reset when hitting the ground)
+        if (playerPosition.Y > GraphicsDevice.Viewport.Height - tileSize)
+        {
+            playerPosition.Y = GraphicsDevice.Viewport.Height - tileSize;
             playerVelocity.Y = 0;
             gravity = 0.1f; // Reset gravity when landing
             isJumping = false; // Allow jumping again after landing
         }
 
         // Clamp to window horizontally
-        playerPosition.X = MathHelper.Clamp(playerPosition.X, 0, GraphicsDevice.Viewport.Width - 8);
-
-        // Debug
-        Console.WriteLine($"Position: {playerPosition}, Velocity: {playerVelocity.Y}, Gravity: {gravity}");
+        playerPosition.X = MathHelper.Clamp(playerPosition.X, 0, GraphicsDevice.Viewport.Width - tileSize);
 
         base.Update(gameTime);
     }
@@ -107,20 +142,54 @@ public class Game1 : Game
     {
         GraphicsDevice.Clear(Color.CornflowerBlue);
 
-        // Begin drawing with the sprite batch
         spriteBatch.Begin();
 
-        // Draw the texture at the position (100, 100)
+        // Draw the platforms as grass and dirt tiles
+        DrawPlatform(platform1);
+        DrawPlatform(platform2);
+
+        // Draw the player (on top of the grass and platforms)
         spriteBatch.Draw(
-            myTexture,                      // The spritesheet texture
-            playerPosition,          // Position to draw at
-            new Rectangle(0, 0, 8, 8),      // Source rectangle (top-left 8x8 sprite)
-            Color.White                     // Color tint (white means no tint)
+            tileSheet, // Texture (sprite sheet)
+            playerPosition, // Position of the player
+            playerTileSource, // Source rectangle for the player sprite
+            Color.White // White color (no tint)
         );
 
-        // End drawing
         spriteBatch.End();
 
         base.Draw(gameTime);
+    }
+
+    private void DrawPlatform(Rectangle platform)
+    {
+        // Draw the left and right green grass tiles (edges)
+        spriteBatch.Draw(
+            tileSheet, // Texture (sprite sheet)
+            new Vector2(platform.X, platform.Y), // Position of the left tile
+            grassTileSource, // Source rectangle for grass tile
+            Color.White // White color (no tint)
+        );
+
+        // Draw the middle dirt tiles
+        for (int x = platform.X + tileSize; x < platform.X + platform.Width - tileSize; x += tileSize)
+        {
+            spriteBatch.Draw(
+                tileSheet, // Texture (sprite sheet)
+                new Vector2(x, platform.Y), // Position of the dirt tile
+                dirtTileSource, // Source rectangle for dirt tile
+                Color.White // White color (no tint)
+            );
+        }
+
+        // Draw the rightmost green grass tile with a flip to make sure it ends with grass on the right side
+        Rectangle flippedGrassTileSource =
+            new Rectangle(grassTileSource.X + tileSize, grassTileSource.Y, -tileSize, tileSize); // Flip horizontally
+        spriteBatch.Draw(
+            tileSheet, // Texture (sprite sheet)
+            new Vector2(platform.X + platform.Width - tileSize, platform.Y), // Position of the right tile
+            flippedGrassTileSource, // Source rectangle for flipped grass tile
+            Color.White // White color (no tint)
+        );
     }
 }
