@@ -15,6 +15,10 @@ public class Game1 : Game
     private Vector2 playerVelocity;
     private float gravity = 0.1f;        // Starting gravity
     private float gravityScale = 1.01f;  // Gravity multiplier per frame
+    private float moveSpeed = 3f;
+    private bool isJumping = false;  // To track if player is currently in the air
+    private float jumpForce = -5f;   // Force applied when player jumps
+
 
 
     public Game1()
@@ -44,18 +48,34 @@ public class Game1 : Game
 
     protected override void Update(GameTime gameTime)
     {
-        if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
+        if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || 
+            Keyboard.GetState().IsKeyDown(Keys.Escape))
             Exit();
-        
+
+        var keyboard = Keyboard.GetState();
+
+        // Horizontal movement
+        if (keyboard.IsKeyDown(Keys.A))
+        {
+            playerPosition.X -= moveSpeed;
+        }
+        if (keyboard.IsKeyDown(Keys.D))
+        {
+            playerPosition.X += moveSpeed;
+        }
         if (playerVelocity.Y > 0)
         {
             gravity *= gravityScale;
         }
         
-        // Apply current gravity value
+        if ((keyboard.IsKeyDown(Keys.W) || keyboard.IsKeyDown(Keys.Space)) && !isJumping)
+        {
+            playerVelocity.Y = jumpForce;  // Apply upward force
+            isJumping = true;              // Player is now jumping
+        }
+
+        // Gravity
         playerVelocity.Y += gravity;
-        
-        // Optionally cap maximum gravity to prevent extreme values
         float maxGravity = 3.0f;
         if (gravity > maxGravity) gravity = maxGravity;
         
@@ -71,8 +91,14 @@ public class Game1 : Game
             playerPosition.Y = GraphicsDevice.Viewport.Height - 8;
             playerVelocity.Y = 0;
             gravity = 0.1f; // Reset gravity when landing
+            isJumping = false; // Allow jumping again after landing
         }
-        Console.WriteLine($"Position: {playerPosition}, Velocity: {playerVelocity}, Gravity: {gravity}");
+
+        // Clamp to window horizontally
+        playerPosition.X = MathHelper.Clamp(playerPosition.X, 0, GraphicsDevice.Viewport.Width - 8);
+
+        // Debug
+        Console.WriteLine($"Position: {playerPosition}, Velocity: {playerVelocity.Y}, Gravity: {gravity}");
 
         base.Update(gameTime);
     }
