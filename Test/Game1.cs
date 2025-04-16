@@ -93,7 +93,7 @@ public class Game1 : Game
     playerVelocity.Y += gravity;
     float maxGravity = 3.0f;
     if (gravity > maxGravity) gravity = maxGravity;
-
+ 
     playerPosition += playerVelocity;
 
     // Top-side collision (landing on platforms)
