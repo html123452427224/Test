@@ -51,6 +51,11 @@ public class Game1 : Game
        
 
         // TODO: Add your update logic here
+        if (playerPosition.Y > GraphicsDevice.Viewport.Height - 8)
+        {
+            playerPosition.Y = GraphicsDevice.Viewport.Height - 8;
+            playerVelocity.Y = 0;
+        }
 
         base.Update(gameTime);
     }
