@@ -8,6 +8,11 @@ public class Game1 : Game
 {
     private GraphicsDeviceManager _graphics;
     private SpriteBatch _spriteBatch;
+    
+    
+    private Vector2 playerPosition;
+    private Vector2 playerVelocity;
+    private float gravity = 0.5f;  // Gravity acceleration per frame
 
     public Game1()
     {
@@ -20,6 +25,8 @@ public class Game1 : Game
     {
         // TODO: Add your initialization logic here
         spriteBatch = new SpriteBatch(GraphicsDevice);
+        playerPosition = new Vector2(100, 100);
+        playerVelocity = Vector2.Zero;
         base.Initialize();
     }
     Texture2D myTexture;
@@ -36,6 +43,12 @@ public class Game1 : Game
     {
         if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
             Exit();
+        
+        playerVelocity.Y += gravity;
+        
+        // Apply velocity to position
+        playerPosition += playerVelocity;
+       
 
         // TODO: Add your update logic here
 
@@ -52,7 +65,7 @@ public class Game1 : Game
         // Draw the texture at the position (100, 100)
         spriteBatch.Draw(
             myTexture,                      // The spritesheet texture
-            new Vector2(100, 100),          // Position to draw at
+            playerPosition,          // Position to draw at
             new Rectangle(0, 0, 8, 8),      // Source rectangle (top-left 8x8 sprite)
             Color.White                     // Color tint (white means no tint)
         );
