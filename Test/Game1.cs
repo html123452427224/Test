@@ -13,11 +13,13 @@ public class Game1 : Game
     private Vector2 playerPosition;
     private Vector2 playerVelocity;
     private float gravity = 0.1f; // Starting gravity
-    private float gravityScale = 1.01f; // Gravity multiplier per frame
+    private float gravityScale = 1.05f; // Gravity multiplier per frame
     private float moveSpeed = 3f;
 
     private bool isJumping = false; // To track if player is currently in the air
     private float jumpForce = -5f; // Force applied when player jumps
+    private Matrix cameraTransform;
+
 
     // Tile parameters
     private Texture2D tileSheet; // The full texture of the sprite sheet
@@ -29,6 +31,7 @@ public class Game1 : Game
     // Platform positions (start and end x, y for each platform)
     private Rectangle platform1; // Platform 1
     private Rectangle platform2; // Platform 2
+    private Rectangle platform3;
 
     public Game1()
     {
@@ -48,6 +51,7 @@ public class Game1 : Game
         // Platform positions
         platform1 = new Rectangle(50, 100, 80, 8); // Platform 1 at (50, 100) with width of 80 tiles
         platform2 = new Rectangle(200, 150, 80, 8); // Platform 2 at (200, 150) with width of 80 tiles
+        platform3 = new Rectangle(300, 200, 80, 8);
 
         base.Initialize();
     }
@@ -90,6 +94,10 @@ public class Game1 : Game
             playerVelocity.Y = jumpForce; // Apply upward force
             isJumping = true; // Player is now jumping
         }
+        if (playerVelocity.Y > 0)
+        {
+            gravity *= gravityScale;
+        }         
 
         // Gravity (accelerates downward)
         playerVelocity.Y += gravity;
@@ -110,6 +118,7 @@ public class Game1 : Game
                 playerPosition.Y = platform1.Y - tileSize; // Set player on top of the platform
                 playerVelocity.Y = 0; // Stop falling
                 isJumping = false; // Allow jumping again after landing
+                gravity = 0.1f;
             }
 
             if (playerPosition.Y + tileSize <= platform2.Y + tileSize &&
@@ -120,6 +129,17 @@ public class Game1 : Game
                 playerPosition.Y = platform2.Y - tileSize; // Set player on top of the platform
                 playerVelocity.Y = 0; // Stop falling
                 isJumping = false; // Allow jumping again after landing
+                gravity = 0.1f;
+            }
+
+            if (playerPosition.Y + tileSize <= platform3.Y + tileSize &&
+                playerPosition.Y + tileSize + playerVelocity.Y >= platform3.Y &&
+                playerPosition.X + tileSize > platform3.X && playerPosition.X < platform3.X + platform3.Width)
+            {
+                playerPosition.Y = platform3.Y - tileSize; // Set player on top of the platform
+                playerVelocity.Y = 0; // Stop falling
+                isJumping = false; // Allow jumping again after landing
+                gravity = 0.1f;
             }
         }
 
@@ -134,6 +154,14 @@ public class Game1 : Game
 
         // Clamp to window horizontally
         playerPosition.X = MathHelper.Clamp(playerPosition.X, 0, GraphicsDevice.Viewport.Width - tileSize);
+        Console.WriteLine($"Position: {playerPosition}, Velocity: {playerVelocity.Y}, Gravity: {gravity}");
+// Kamera bude sledovat hráče – centrováno na hráče (případně mírně offset pro estetiku)
+        var viewport = GraphicsDevice.Viewport;
+        cameraTransform = Matrix.CreateTranslation(
+            -playerPosition.X + viewport.Width / 2f - tileSize / 2f,
+            -playerPosition.Y + viewport.Height / 2f - tileSize / 2f,
+            0
+        );
 
         base.Update(gameTime);
     }
@@ -142,11 +170,13 @@ public class Game1 : Game
     {
         GraphicsDevice.Clear(Color.CornflowerBlue);
 
-        spriteBatch.Begin();
+        spriteBatch.Begin(transformMatrix: cameraTransform);
+
 
         // Draw the platforms as grass and dirt tiles
         DrawPlatform(platform1);
         DrawPlatform(platform2);
+        DrawPlatform(platform3);
 
         // Draw the player (on top of the grass and platforms)
         spriteBatch.Draw(
